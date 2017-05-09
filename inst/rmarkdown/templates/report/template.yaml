@@ -1,0 +1,4 @@
+name: MDACC Report (HTML)
+description: >
+  Template for analysis reports in bioinformatics.
+create_dir: true

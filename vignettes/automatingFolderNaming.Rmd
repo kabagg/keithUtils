@@ -1,0 +1,267 @@
+---
+title: "Automating Project Setup to Clarify Workflow"
+author: "Keith Baggerly"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# A Goal of keithUtils
+
+Consistent file organization can often clarify structure and workflow. Since I'm not always very good at this myself, I've tried to automate part of the process and let the computer handle some aspects of the bookkeeping for me. 
+
+# Setting Up a Project
+
+As I'm beginning work on a project, I want to set up the folder structure and write out a project description (the main goals). This can be accomplished using setUpProject. Let's say we invoke this in the new Rstudio project "Testing", which should contain "Testing.Rproj" and essentially nothing else. 
+
+```{r setUpProject, eval=FALSE}
+
+dir()
+## [1] "Testing.Rproj"
+
+library(keithUtils)
+## Loading required package: rmarkdown
+## Loading required package: knitr
+## Loading required package: rprojroot
+
+setUpProject()  ## same as setUpProject("KeithBaggerly")
+## Setting project root
+
+dir()
+## [1] "Data"                   "Figures"               
+## [3] "Output"                 "ProcessedData"         
+## [5] "projectDescription.Rmd" "projectInfo.RData"     
+## [7] "Reports"                "Testing.Rproj"         
+
+```
+
+Invocation of setUpProject() uses the folder style "KeithBaggerly" (others are discussed below) to autopopulate this folder with the subfolders I prefer (Data, Figures, Output, ProcessedData, and Reports) as well as an RData file specifying implied style mappings and a template "projectDescription.Rmd" file. 
+
+This means I always use the same subfolder names, and reminds me that the first thing I should do before diving too deep into the analysis is to describe what the project is, what we hope to learn in broad terms, and record some other basic information (e.g., who are the collaborators, who's on my team, and so on).
+
+## Specifying the Project Root
+
+In Rstudio, one use of the top level .Rproj file is to clearly mark this folder as the project root, so that other files and folders can be positioned properly in the project _with respect to the root_. The root can be identified from any subfolder within the project by walking up the tree until we encounter a file ending in .Rproj - this is implemented in the rprojroot package.
+
+https://github.com/krlmlr/rprojroot
+
+The rationale is presented in Jenny Bryan's post to "Stop the Working Directory Insanity":
+
+https://gist.github.com/jennybc/362f52446fe1ebc4c49f
+
+The "projectInfo.RData" file serves as a similar "root anchor" for my projects; only the string being matched is different. I wrap my call to rprojroot with this string in "findKeithRoot()".
+
+```{r findRoot, eval=FALSE}
+
+find_root(is_rstudio_project)
+## [1] "/Users/kabaggerly/Professional/PIs/Baggerly/BiostatRR/Testing"
+
+projectRoot <- findKeithRoot()
+projectRoot
+## [1] "/Users/kabaggerly/Professional/PIs/Baggerly/BiostatRR/Testing"
+
+```
+
+## Defining the Folder Style
+
+I'm certainly not the only one who has a preferred subfolder structure; others have published theirs as well. There isn't one "best" style. What's important is finding a style you like and using it consistently. To allow for this, I've implemented styles from a few other people. 
+
+### Jenny Bryan
+
+One style comes from Jenny Bryan's course on data wrangling at UBC from a few years ago
+https://www.stat.ubc.ca/~jenny/STAT545A/block19_codeFormattingOrganization.html
+where she outlines the folder structure she uses. 
+
+```{r jennyBryanStyle, eval=FALSE}
+
+dir()
+## [1] "Testing.Rproj"
+
+setUpProject("JennyBryan")
+## Setting project root
+
+dir()
+##  [1] "code"                   "data"                  
+##  [3] "figs"                   "fromCollaborator"      
+##  [5] "projectDescription.Rmd" "projectInfo.RData"     
+##  [7] "prose"                  "results"               
+##  [9] "rmd"                    "Testing.Rproj"         
+## [11] "web"                   
+
+```
+
+My current mappings for Jenny's folders are
+
+```{r jennyMappings, eval=FALSE}
+
+projectInfo$figureFolder <- "figs"
+projectInfo$reportsFolder <- "rmd"
+projectInfo$rawDataFolder <- "data"
+projectInfo$processedDataFolder <- "data"
+projectInfo$outputFolder <- "results"
+
+```
+
+Note that I map both raw and processed data to "data" here.
+
+### Karl Broman
+
+Another style comes from Karl Broman's course on Tools for Reproducible Research at the University of Wisconsin,
+http://kbroman.org/Tools4RR/assets/lectures/06_org_eda_withnotes.pdf
+Slide 6 outlines the folder structure he uses for Projects (which is what we emulate here); Karl uses different structures for Papers and Presentations.
+
+```{r karlBromanStyle, eval=FALSE}
+
+dir()
+## [1] "Testing.Rproj"
+
+setUpProject("KarlBroman")
+## Setting project root
+
+dir()
+## [1] "Data"                   "Notes"                 
+## [3] "projectDescription.Rmd" "projectInfo.RData"     
+## [5] "R"                      "RawData"               
+## [7] "Refs"                   "Testing.Rproj"         
+
+dir("R")
+## [1] "Cache" "Figs" 
+
+```
+
+Note that Karl uses a subfolder for figures. My current mappings for his structure are
+
+```{r karlMappings, eval=FALSE}
+
+projectInfo$figureFolder <- "R/Figs"
+projectInfo$reportsFolder <- "R"
+projectInfo$rawDataFolder <- "RawData"
+projectInfo$processedDataFolder <- "Data"
+projectInfo$outputFolder <- "R"
+
+```
+
+Note that I map reports to "R" here; Karl might put them in "Notes".
+
+## Storing Project Information
+
+For every style, we need to define a mapping between the folder names to be used (which vary by style) and where autogenerated files (e.g., template reports, figures) should be put. At present, this information includes the folder style and paths, relative to the project root, for
+
+* folderStyle, e.g., "KeithBaggerly", specifying top-level subfolders
+* figureFolder, e.g., "Figures"
+* reportsFolder, e.g., "Reports"
+* rawDataFolder, e.g., "Data"
+* processedDataFolder, e.g., "ProcessedData"
+* outputFolder, e.g., "Output" (for csv files, tables, and the like)
+
+All of the code refers to the names in project info, (e.g., put figures in the "figureFolder"), so changing styles simply involves changing the mappings in one place.
+
+## Creating a Project Description
+
+The project description is generally the first thing I try to write; it lays out what we're trying to do and why. If this is a very basic task (e.g., sample size calculation), the description may be quite brief (just a few lines), but I've been surprised at how often I get asked for "just a few tweaks" for things I thought were quick one-off jobs. 
+
+I also try to include more basic information here, such as names / contact info of people this is for, funding source if appropriate, and so on.
+
+# Producing Analysis Reports
+
+Once I've set up a project structure, I begin working through my analyses. I tend to structure my analyses in the form of "reports" where I state what the local goal is in text and then work through the analysis steps sequentially. Ideally, these should be comprehensible to my collaborators, though I tend not to send out all of the reports I create. 
+
+I occasionally lose track of what analyses were done when, and what outputs were produced from what analyses. Much of this information can be tracked by regularly updating a Makefile and other records, but a simpler version involves simply numbering the reports so the sequence is immediately obvious. The problem with this is that I occasionally forget to do this, but this is something I can get the computer to help with. 
+
+Specifically, if I begin by invoking
+
+```{r produceReport1, eval=FALSE}
+
+newMdaccReport("descriptiveShortName")
+
+```
+
+from anywhere within the project, a template folder and Rmd file will be added to the reportFolder
+
+```{r indexedReport, eval=FALSE}
+
+dir("Reports")
+## [1] "r01_descriptiveShortName"
+dir("Reports/r01_descriptiveShortName")
+## [1] "r01_descriptiveShortName.Rmd"
+
+```
+
+together with an autogenerated prefix of the form shown.
+
+## Prefix Assignment
+
+The prefixes are generated by examining the contents of the reportsFolder for all files beginning with "r", "digit1", "digit2", "underscore". All of the "digit1", "digit2" pairs are converted to numeric form, the maximum is found and incremented by 1, and the new prefix is assigned. Thus, generating a second report when r01 is there would produce a report with a prefix of r02. There would indeed be problems if we get up to 100 reports in one project, but this hasn't happened to me yet. 
+
+## Figure Naming
+
+The template reports include an example figure. If we actually knit the Rmd file to generate a report, then a copy of the figure is placed in the figureFolder.
+
+```{r namingFigures, eval=FALSE}
+
+dir("Reports/r01_descriptiveShortName")
+## [1] "r01_descriptiveShortName.html" "r01_descriptiveShortName.Rmd" 
+dir("Figures")
+## [1] "r01_simplePlot-1.png"
+
+```
+
+Figures inherit the prefix of the report that generated them, because fig.path is set at the top of all autogenerated reports. The main name (here "simplePlot") is simply the plot chunk name in the report. 
+
+This prefix addition is included because I often get requests to modify figures I've generated, and it's easier for me if I know which report has the code that produced the figure. 
+
+# Open Questions / Stuff to Do
+
+This project isn't complete. There are several changes that might be introduced that might make reproducibility easier or improve clarity. We list some of these here. 
+
+## Should projectInfo be a Text File?
+
+I'm currently saving project information such as the folder style in the RData object projectInfo.RData, which I'm also using to identify the project root. R project .Rproj files, by contrast, are plain text. In the interest of keeping everything in the project as "git-able" as possible, it may be better to use a plain text file here. At present, this is simply a bunch of key-value pairs, so the data structure isn't complex.
+
+## Can we put projectInfo in the Environment?
+
+Much of the project information is stuff we'd like to have immediately accessible from all files in the project - e.g., so the reportsFolder can be alluded to directly rather than finding the project root and loading the projectInfo every time. I'm not sure how easy this would be to set up. 
+
+## Can we Make it Easier to Include New Folder Styles?
+
+I've hard-coded three, but I should probably revise the function to let others specify their own choices. 
+
+## Does Automatic Numbering Make Sense with Collaborators?
+
+The report indexing scheme I use is really best suited to cases with small numbers of people. If several people try to work on their own copies of the project repository and then try to merge them, we may have a "partial ordering" in which we might have, for example, one r04 file from one participant and another r04 file from another. Given that everyone is supposed to choose their own names for the files they assemble, it's unlikely we'd have flat-out merge conflicts. Larger projects should really be using makefiles. 
+
+## Should the Project Description file be Called README?
+
+I call it a project description because this implies (to me) more than most README files contain. Calling it a README, however, would mean it is automatically rendered by GitHub if we have it in some flavor of markdown. 
+
+## Automatically Open projectDescription.Rmd on Creation in RStudio?
+
+We create a project description template as one of the first steps, in part to encourage the practice of writing such a description at the outset. In keeping with this, should we open the file for editing at the time of creation? The default behavior from rmarkdown::draft if such is requested is to open the file in a new R notebook, and I confess I don't find notebooks my preferred method of writing just yet. If I can open it as an Rmd file for editing _in Rstudio_, I may make this the default. 
+
+## Should the projectDescription Include More User Input Fields?
+
+At present, the projectDescription mostly poses questions in ways amenable to free form answers to be included just in the description. Some of this information, however, might be useful for automatic inclusion in reports if available (e.g., who is this report for?). This type of information might be acquired by a pop-up dialog box at startup, and more formally spliced into the description file. 
+
+## Including More Templates
+
+At present, we've included templates for the project description and for a basic report in the format I use. There are several modifications that could be added, both in terms of procedure and formatting. 
+
+Procedure templates are ones which outline the workflow of analyses we're often asked to perform, such as contrasting two groups of RNA-Seq profiles, or survival analyses. 
+
+Formatting templates are ones which improve the "look and feel" of the output relative to the defaults. At present, most of the formatting templates I have in mind relate to MS Word output, since that's what many of my collaborators prefer. This requires developing and including a reference .docx file along with the template, as outlined in a few different places, e.g.,
+
+http://rmarkdown.rstudio.com/word_document_format.html#pandoc_arguments
+
+http://rmarkdown.rstudio.com/articles_docx.html
+
+Specific tweaks I'd like to add:
+
+* include a logo as part of the header
+* arrange the preamble in the form of a memorandum with fields for "To", "From", "Phone", etc
+* add page numbers
+* formatting tables per our collaborators expectations
+
+There are similar formatting issues which may arise with html and pdf output, but those are further back in the queue at the moment.

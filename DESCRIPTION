@@ -1,0 +1,20 @@
+Package: keithUtils
+Type: Package
+Title: Tools for Automating Project and Report Assembly
+Version: 0.1.0
+Author: Keith Baggerly
+Maintainer: Keith Baggerly <kabagg@gmail.com>
+Description: A collection of scripts and functions I've found
+    useful, including tools for project setup, report templates,
+    and image examples.
+License: CC0
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
+Depends:
+    rmarkdown,
+    knitr,
+    rprojroot
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr

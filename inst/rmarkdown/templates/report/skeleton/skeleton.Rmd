@@ -1,0 +1,67 @@
+---
+title: "MDACC Report Template"
+author: "Report Author"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    code_folding: hide
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    fig_caption: true
+---
+
+```{r setReportOptions, echo=FALSE}
+
+library(keithUtils)
+
+projectRoot <- findKeithRoot()
+load(file.path(projectRoot, "projectInfo.RData"))
+
+reportPrefix <- ""
+opts_chunk$set(fig.path=file.path(projectRoot, 
+                                  projectInfo$figureFolder,
+                                  reportPrefix))
+
+```
+
+# Executive Summary
+
+## Introduction
+
+Who is this for?
+
+## Data and Methods
+
+## Results
+
+## Conclusions
+
+# Loading Libraries and Data
+
+## Libraries
+
+Here we load the libraries we'll need for our analysis. 
+
+## Data
+
+# Analysis
+
+## An Example Plot
+
+```{r simplePlot, fig.cap="just a basic plot"}
+
+plot(1:10)
+
+```
+
+
+# Appendix
+
+```{r appendixInfo}
+
+getwd()
+sessionInfo()
+
+```
+
